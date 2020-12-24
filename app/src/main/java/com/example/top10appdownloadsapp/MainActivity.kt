@@ -78,6 +78,9 @@ class MainActivity : AppCompatActivity() {
                     Log.e(TAG, "downloadXML: IO Exception reading data: ${e.message}")
                 } catch (e: Exception) {
                     Log.e(TAG, "Unknown error: ${e.message}")
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                    Log.e(TAG, "downloadXML: Security exception. Need Permission")
                 }
 
                 return "" //if it gets to here
