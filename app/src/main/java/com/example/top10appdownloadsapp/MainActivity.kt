@@ -33,22 +33,39 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity"
     private var downloadData: DownloadData? = null
+
     private var feedUrl: String = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml"
     private var feedLimit = 10
+
+    private var feedCacheUrl = "INVALIDATED"
+    private val STATE_URL = "feedUrl"
+    private val STATE_LIMIT = "feedLimit"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        Log.d(TAG, "onCreate called")
+
+        if (savedInstanceState != null) {
+            feedUrl = savedInstanceState.getString(STATE_URL)!!
+            feedLimit = savedInstanceState.getInt(STATE_LIMIT)
+        }
 
         downloadUrl(feedUrl.format(feedLimit))
         Log.d(TAG, "onCreate: Done")
     }
 
     private fun downloadUrl(feedUrl: String) {
-        Log.d(TAG, "downloadUrl starting AsyncTask")
-        downloadData = DownloadData(this, xmlListView)
-        downloadData?.execute(feedUrl)
-        Log.d(TAG, "downloadUrl: Done")
+        if (feedUrl != feedCacheUrl) {
+            Log.d(TAG, "downloadUrl starting AsyncTask")
+            downloadData = DownloadData(this, xmlListView)
+            downloadData?.execute(feedUrl)
+            feedCacheUrl = feedUrl
+            Log.d(TAG, "downloadUrl: Done")
+        } else {
+            Log.d(TAG, "downloadUrl - URL not changed")
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -64,7 +81,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
 
-        when(item.itemId) {
+        when (item.itemId) {
             R.id.menuFree -> feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml"
             R.id.menuPaids -> feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/toppaidapplications/limit=%d/xml"
             R.id.menuSongs -> feedUrl = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=%d/xml"
@@ -77,11 +94,18 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, "onOptionItemSelected: ${item.title} setting feedLimit to unchanged")
                 }
             }
+            R.id.menuRefresh -> feedCacheUrl = "INVALIDATED"
             else -> return super.onOptionsItemSelected(item)
         }
 
         downloadUrl(feedUrl.format(feedLimit))
         return true
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_URL, feedUrl)
+        outState.putInt(STATE_LIMIT, feedLimit)
     }
 
     override fun onDestroy() {
@@ -90,10 +114,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private class  DownloadData(context: Context, listView: ListView): AsyncTask<String, Void, String>() {
+        private class DownloadData(context: Context, listView: ListView) : AsyncTask<String, Void, String>() {
             private val TAG = "DownloadData"
 
-            var propContext : Context by Delegates.notNull()
+            var propContext: Context by Delegates.notNull()
             var propListView: ListView by Delegates.notNull()
 
             init {
@@ -119,7 +143,7 @@ class MainActivity : AppCompatActivity() {
                 return rssFeed
             }
 
-            private fun downloadXML(urlPath: String?) : String {
+            private fun downloadXML(urlPath: String?): String {
                 return URL(urlPath).readText()
             }
         }
